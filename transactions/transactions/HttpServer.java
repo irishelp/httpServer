@@ -3,6 +3,7 @@ package transactions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,126 +20,173 @@ import javax.crypto.spec.DESKeySpec;
 
 public class HttpServer {
 	private static String hexString = "0123456789ABCDEF";
-	private static String mmk = "3D1C205404B070E3";
+	private static String zmk = "3D1C205404B070E3";// 主密钥
 
 	public static void main(String[] args) {
 		try {
 			ServerSocket ss = new ServerSocket(8888);
+			while (true) {
+				Socket socket = ss.accept();
+				InputStream in = socket.getInputStream();
+				String receive;// 获得输入流
+				if (in != null) {
+					ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+					byte[] buffer = new byte[1024];
+					int len = 0;
 
-			Socket socket = ss.accept();
-			InputStream in = socket.getInputStream();
-			String receive;// 获得输入流
-			if (in != null) {
-				ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-				byte[] buffer = new byte[1024];
-				int len = 0;
-				if ((len = in.read(buffer)) != -1) {
-					outStream.write(buffer, 0, len);
-					receive = bytesToHexString(outStream.toByteArray());
-					System.out.println(receive);
-					Map<String, String> requestMessage = new HashMap<String, String>();
-					int position = 290;
-					requestMessage.put("messageLength", decode(receive.substring(position, position + 8)));
-					position = position + 8;
-					requestMessage.put("headerField1", receive.substring(position, position + 2));
-					position = position + 2;
-					requestMessage.put("headerField2", receive.substring(position, position + 2));
-					position = position + 2;
-					requestMessage.put("headerField3", decode(receive.substring(position, position + 8)));
-					position = position + 8;
-					requestMessage.put("headerField4", decode(receive.substring(position, position + 22)).trim());
-					position = position + 22;
-					requestMessage.put("headerField5", decode(receive.substring(position, position + 22)).trim());
-					position = position + 22;
-					requestMessage.put("headerField6", receive.substring(position, position + 6));
-					position = position + 6;
-					requestMessage.put("headerField7", receive.substring(position, position + 2));
-					position = position + 2;
-					requestMessage.put("headerField8", decode(receive.substring(position, position + 16)));
-					position = position + 16;
-					requestMessage.put("headerField9", receive.substring(position, position + 2));
-					position = position + 2;
-					requestMessage.put("headerField10", decode(receive.substring(position, position + 10)));
-					position = position + 10;
-					requestMessage.put("MTI", decode(receive.substring(position, position + 8)));
-					position = position + 8;
-					requestMessage.put("bitmap", receive.substring(position, position + 32));
-					position = position + 32;
-					requestMessage.put("7", decode(receive.substring(position, position + 20)));
-					position = position + 20;
-					requestMessage.put("11", decode(receive.substring(position, position + 12)));
-					position = position + 12;
-					requestMessage.put("48L", decode(receive.substring(position, position + 6)));
-					position = position + 6;
-					requestMessage.put("48D", decode(
-							receive.substring(position, position + Integer.parseInt(requestMessage.get("48L")) * 2)));
-					position = position + Integer.parseInt(requestMessage.get("48L")) * 2;
-					requestMessage.put("53", decode(receive.substring(position, position + 32)));
-					position = position + 32;
-					requestMessage.put("70", decode(receive.substring(position, position + 6)));
-					position = position + 6;
-					requestMessage.put("96", receive.substring(position, position + 16));
-					position = position + 16;
-					requestMessage.put("100L", decode(receive.substring(position, position + 4)));
-					position = position + 4;
-					requestMessage.put("100D", decode(
-							receive.substring(position, position + Integer.parseInt(requestMessage.get("100L")) * 2)));
-					position = position + Integer.parseInt(requestMessage.get("100L")) * 2;
-					
-					for(String key:requestMessage.keySet()){
-						System.out.println(key+" : "+requestMessage.get(key));
-					}
-					
-					requestMessage.put("128", receive.substring(position, position + 16));
+					if ((len = in.read(buffer)) != -1) {
+						outStream.write(buffer, 0, len);
+						receive = bytesToHexString(outStream.toByteArray());
+						List<String> fieldkey = new ArrayList<String>();
+						System.out.println(receive);
+						Map<String, String> requestMessage = new HashMap<String, String>();
+						int position = 290;
+						requestMessage.put("messageLength", decode(receive.substring(position, position + 8)));
+						position = position + 8;
+						fieldkey.add("messageLength");
+						requestMessage.put("headerField1", receive.substring(position, position + 2));
+						position = position + 2;
+						fieldkey.add("headerField1");
+						requestMessage.put("headerField2", receive.substring(position, position + 2));
+						position = position + 2;
+						fieldkey.add("headerField2");
+						requestMessage.put("headerField3", decode(receive.substring(position, position + 8)));
+						position = position + 8;
+						fieldkey.add("headerField3");
+						requestMessage.put("headerField4", decode(receive.substring(position, position + 22)).trim());
+						position = position + 22;
+						fieldkey.add("headerField4");
+						requestMessage.put("headerField5", decode(receive.substring(position, position + 22)).trim());
+						position = position + 22;
+						fieldkey.add("headerField5");
+						requestMessage.put("headerField6", receive.substring(position, position + 6));
+						position = position + 6;
+						fieldkey.add("headerField6");
+						requestMessage.put("headerField7", receive.substring(position, position + 2));
+						position = position + 2;
+						fieldkey.add("headerField7");
+						requestMessage.put("headerField8", decode(receive.substring(position, position + 16)));
+						position = position + 16;
+						fieldkey.add("headerField8");
+						requestMessage.put("headerField9", receive.substring(position, position + 2));
+						position = position + 2;
+						fieldkey.add("headerField9");
+						requestMessage.put("headerField10", decode(receive.substring(position, position + 10)));
+						position = position + 10;
+						fieldkey.add("headerField10");
+						requestMessage.put("MTI", decode(receive.substring(position, position + 8)));
+						position = position + 8;
+						fieldkey.add("MTI");
+						requestMessage.put("bitmap", receive.substring(position, position + 32));
+						position = position + 32;
+						fieldkey.add("bitmap");
+						requestMessage.put("7", decode(receive.substring(position, position + 20)));
+						position = position + 20;
+						fieldkey.add("7");
+						requestMessage.put("11", decode(receive.substring(position, position + 12)));
+						position = position + 12;
+						fieldkey.add("11");
+						requestMessage.put("48L", decode(receive.substring(position, position + 6)));
+						position = position + 6;
+						fieldkey.add("48L");
+						requestMessage.put("48D", decode(receive.substring(position,
+								position + Integer.parseInt(requestMessage.get("48L")) * 2)));
+						position = position + Integer.parseInt(requestMessage.get("48L")) * 2;
+						fieldkey.add("48D");
+						requestMessage.put("53", decode(receive.substring(position, position + 32)));
+						position = position + 32;
+						fieldkey.add("53");
+						requestMessage.put("70", decode(receive.substring(position, position + 6)));
+						position = position + 6;
+						fieldkey.add("70");
+						requestMessage.put("96", receive.substring(position, position + 16));
+						position = position + 16;
+						fieldkey.add("96");
+						requestMessage.put("100L", decode(receive.substring(position, position + 4)));
+						position = position + 4;
+						fieldkey.add("100L");
+						requestMessage.put("100D", decode(receive.substring(position,
+								position + Integer.parseInt(requestMessage.get("100L")) * 2)));
+						position = position + Integer.parseInt(requestMessage.get("100L")) * 2;
+						fieldkey.add("100D");
 
-					// 128 check
-					List<String> mabFields = new ArrayList<String>();
-					mabFields.add(requestMessage.get("MTI"));
-					mabFields.add(requestMessage.get("7"));
-					mabFields.add(requestMessage.get("11"));
-					mabFields.add(requestMessage.get("53"));
-					mabFields.add(requestMessage.get("70"));
-					if (Integer.parseInt(requestMessage.get("100L")) < 10) {
-						mabFields.add("8" + requestMessage.get("100L") + requestMessage.get("100D"));
-					} else {
-						mabFields.add(requestMessage.get("100L") + requestMessage.get("100D"));
-					}
-					String mab = makeMab(mabFields);
-					try {
-						String mak = bytesToString(
-								decrypt(hexStringToByte(requestMessage.get("96")), hexStringToByte(mmk)));
-						System.out.println("工作密钥解密结果:" + mak);
-						String machalf1 = makeMac(mab, mak).substring(0,4);
-						String checkvalue = bytesToString(
-								decrypt(hexStringToByte("0000000000000000"),hexStringToByte(requestMessage.get("96"))));
-						String machalf2=checkvalue.substring(0, 4);
-						String mac=encode(machalf1+machalf2);
-						
-
-						if(mac.equals(requestMessage.get("128"))){
-							System.out.println("Pass:128域校验成功");
-						}else{
-							System.out.println("Fail:128域校验失败,计算结果结果: " + mac+"  ,实际收到: "+requestMessage.get("128"));
+						for (String key : fieldkey) {
+							System.out.println(key + " : " + requestMessage.get(key));
 						}
-						
-						
-					} catch (Exception e1) {
-						e1.printStackTrace();
+
+						requestMessage.put("128", receive.substring(position, position + 16));
+
+						// 128 check
+						List<String> mabFields = new ArrayList<String>();
+						mabFields.add(requestMessage.get("MTI"));
+						mabFields.add(requestMessage.get("7"));
+						mabFields.add(requestMessage.get("11"));
+						mabFields.add(requestMessage.get("53"));
+						mabFields.add(requestMessage.get("70"));
+						mabFields.add(requestMessage.get("100L") + requestMessage.get("100D"));
+
+						String mab = makeMab(mabFields);
+						try {
+							String mak = bytesToString(
+									decrypt(hexStringToByte(requestMessage.get("96")), hexStringToByte(zmk)));
+
+							System.out.println("工作密钥解密结果:" + mak);
+
+							String machalf1 = makeMac(mab, mak).substring(0, 4);
+
+							String checkvalue = bytesToString(
+									desCrypto(hexStringToByte("0000000000000000"), hexStringToByte(mak)));
+							String machalf2 = checkvalue.substring(0, 4);
+
+							String mac = encode(machalf1 + machalf2);
+
+							if (mac.equals(requestMessage.get("128"))) {
+								System.out.println("Pass:128域校验成功,128域为: " + mac);
+							} else {
+								System.out.println(
+										"Fail:128域校验失败,计算结果结果: " + mac + "  ,实际收到: " + requestMessage.get("128"));
+							}
+
+						} catch (Exception e1) {
+							e1.printStackTrace();
+						}
+
+						// 发送回执
+						String responsebody = requestMessage.get("headerField1") + requestMessage.get("headerField2")
+								+ encode(requestMessage.get("headerField2"));
+						System.out.println("responsebody: " + responsebody);
+						String lengthout = Integer.toString((responsebody.length() / 2));
+						// System.out.println("lengthout:"+lengthout);
+
+						String messagelength = new String();
+						if (lengthout.length() == 2) {
+							messagelength = "3030" + encode(lengthout);
+
+						} else if (lengthout.length() == 3) {
+
+							messagelength = "30" + encode(lengthout);
+
+						} else {
+
+							messagelength = encode(lengthout);
+						}
+						System.out.println("messagelength: " + messagelength);
+
+						PrintWriter resp = new PrintWriter(socket.getOutputStream());
+						System.out.println("应答开始发送");
+						resp.println("HTTP/1.1 200 OK");
+						resp.println("Content-type:text/html");
+						resp.println("");
+						resp.println(messagelength + responsebody);
+						System.out.println("发送应答成功");
+
+						resp.flush();
 					}
 
-					
 				}
-
-				// 发送回执
-				PrintWriter pw = new PrintWriter(socket.getOutputStream());
-
-				pw.println("HTTP/1.1 200 OK");
-				pw.println("Content-type:text/html");
-				pw.println();
-				pw.println("<h1>访问成功！</h1>");
-				pw.flush();
+				socket.close();
 			}
-			socket.close();
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -156,22 +204,19 @@ public class HttpServer {
 		return sb.toString();
 	}
 
-	//ASCII to BCD
-	  public static String encode(String str)
-	  {
-	  //
-	  byte[] bytes=str.getBytes();
-	  StringBuilder sb=new StringBuilder(bytes.length*2);
+	// ASCII to BCD
+	public static String encode(String str) {
+		//
+		byte[] bytes = str.getBytes();
+		StringBuilder sb = new StringBuilder(bytes.length * 2);
 
-	  for(int i=0;i<bytes.length;i++)
-	  {
-	  sb.append(hexString.charAt((bytes[i]&0xf0)>>4));
-	  sb.append(hexString.charAt((bytes[i]&0x0f)>>0));
-	  }
-	  return sb.toString();
-	  }  
-  
-	
+		for (int i = 0; i < bytes.length; i++) {
+			sb.append(hexString.charAt((bytes[i] & 0xf0) >> 4));
+			sb.append(hexString.charAt((bytes[i] & 0x0f) >> 0));
+		}
+		return sb.toString();
+	}
+
 	// BCD to ASCII
 	public static String decode(String bytes) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(bytes.length() / 2);
